@@ -56,7 +56,7 @@ class WordSegm():
             self.prob_char[ch] /= float(sum)
 
     def calc_output_prob(self, w ):
-        conc_param = 10.0
+        alpha = 10.0
         prior = 1.0
 
         # 文字発生確率
@@ -67,22 +67,22 @@ class WordSegm():
         L = len(w)
         prior *= (self.AVE_LEN**L) * math.exp( -self.AVE_LEN ) / math.factorial(L)
 
-        p = ( self.word_count[w] +  conc_param*prior ) / ( self.num_words + conc_param )
+        p = ( self.word_count[w] +  alpha*prior ) / ( self.num_words + alpha )
 
         return p
 
     def forward_filtering(self, sentence ):
         T = len(sentence)
-        a = numpy.zeros( (len(sentence), self.MAX_LEN) )  # 前向き確率
+        a = numpy.zeros( (len(sentence), self.MAX_LEN+1) )  # 前向き確率
 
         for t in range(T):
-            for k in range(self.MAX_LEN):
-                if t-k<0:
+            for k in range(1,self.MAX_LEN+1):
+                if t-k+1<0:
                     break
 
-                out_prob = self.calc_output_prob( sentence[t-k:t+1] )
+                out_prob = self.calc_output_prob( sentence[t-k+1:t+1] )
 
-                tt = t-k-1 # tを終端とする長さkの単語の前の位置
+                tt = t-k # t-kを終端とする長さkの単語の前の位置
                 if tt>=0:
                     # ttまで到達する単語を全て周辺化
                     for kk in range(self.MAX_LEN):
@@ -111,11 +111,11 @@ class WordSegm():
 
         while True:
             k = self.sample_idx( a[t] )
-            w = sentence[t-k:t+1]
+            w = sentence[t-k+1:t+1]
 
             words.insert( 0, w )
 
-            t = t-k-1
+            t = t-k
 
             if t<0:
                 break
